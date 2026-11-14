@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FULGUR — Planetary Lightning Sonification Observatory</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <canvas id="globe-canvas" aria-label="Interactive 3D Lightning Globe"></canvas>
+
+  <!-- Top-Left HUD: Telemetry & Feed Controls -->
+  <aside class="hud-panel hud-top-left" aria-label="Blitzortung Stream Telemetry">
+    <div class="brand-row">
+      <div class="brand-mark">
+        <span class="brand-glyph" aria-hidden="true">⚡</span>
+        <div>
+          <h1 class="brand-title">FULGUR</h1>
+          <p class="brand-sub">BLITZORTUNG · WEB AUDIO OBSERVATORY</p>
+        </div>
+      </div>
+      <div id="status-pill" class="status-pill status-connecting" title="Live Feed Status">
+        <span class="status-dot"></span>
+        <span id="status-label">CONNECTING</span>
+      </div>
+    </div>
+
+    <p id="status-detail" class="status-detail">Handshaking Blitzortung nodes...</p>
+
+    <div class="feed-controls" role="group" aria-label="Data Feed Mode">
+      <button type="button" class="pill-btn active" data-mode="auto">AUTO LIVE</button>
+      <button type="button" class="pill-btn" data-mode="live">LIVE WS ONLY</button>
+      <button type="button" class="pill-btn" data-mode="simulated">SIMULATE</button>
+      <button type="button" id="btn-burst" class="pill-btn pill-accent" title="Inject localized supercell burst">+ BURST</button>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-cell">
+        <span class="metric-label">STRIKES / MIN</span>
+        <span id="metric-spm" class="metric-value">0</span>
+      </div>
+      <div class="metric-cell">
+        <span class="metric-label">SESSION TOTAL</span>
+        <span id="metric-total" class="metric-value">0</span>
+      </div>
+      <div class="metric-cell">
+        <span class="metric-label">LAST NOTE</span>
+        <span id="metric-note" class="metric-value metric-cyan">—</span>
+      </div>
+    </div>
+
+    <div class="coord-footer">
+      <span id="hover-coords">DRAG TO ORBIT · CLICK GLOBE TO STRIKE</span>
+    </div>
+  </aside>
+
+  <!-- Top-Right HUD: Spectrum & Strike Log -->
+  <aside class="hud-panel hud-top-right" aria-label="Audio Spectrum and Recent Strikes">
+    <div class="panel-header">
+      <span class="panel-title">HARMONIC SPECTRUM</span>
+      <span id="audio-state-tag" class="panel-badge">MUTED</span>
+    </div>
+
+    <canvas id="spectrum-canvas" width="320" height="58" aria-label="40-Bar Audio Spectrum"></canvas>
+
+    <div class="panel-header log-header">
+      <span class="panel-title">RECENT DISCHARGES</span>
+      <span class="panel-hint">CLICK ROW TO FOCUS</span>
+    </div>
+
+    <ul id="strike-log" class="strike-log" aria-live="polite">
+      <li class="strike-empty">Awaiting atmospheric discharges...</li>
+    </ul>
+
+    <div class="pitch-legend" aria-label="Latitude to Pitch Register Mapping">
+      <div class="legend-item">
+        <span class="legend-band band-south"></span>
+        <span>-65°..-23° BASS SWELL</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-band band-tropics"></span>
+        <span>±23.5° GLASS BELL</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-band band-north"></span>
+        <span>+23°..+65° FM CHIME</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Center-Bottom First-Visit Audio Gate -->
+  <section id="launch-card" class="launch-card" aria-label="Initialize Audio Observatory">
+    <div class="launch-badge">PLANETARY SONIFICATION ENGINE</div>
+    <h2 class="launch-title">INITIALIZE AUDIO OBSERVATORY</h2>
+    <p class="launch-desc">
+      Real-time global lightning coordinates are translated into harmonic scales,
+      stereo spatial chimes, planetary drones, and VLF radio sferics.
+    </p>
+    <button type="button" id="btn-engage" class="engage-btn">
+      <span class="engage-dot"></span>
+      ENGAGE SONIFICATION
+    </button>
+  </section>
+
+  <!-- Bottom-Center HUD: Generative Audio & Globe Control Dock -->
+  <footer class="hud-panel hud-bottom-dock" aria-label="Synthesizer and Globe Controls">
+    <div class="dock-row dock-top-row">
+      <button type="button" id="btn-mute" class="mute-btn is-muted">
+        <span class="mute-indicator"></span>
+        <span id="mute-label">LISTEN</span>
+      </button>
+
+      <div class="control-group">
+        <span class="group-label">SCALE</span>
+        <div class="scale-pills" role="group" aria-label="Musical Scale">
+          <button type="button" class="pill-btn active" data-scale="hirajoshi">Hirajoshi</button>
+          <button type="button" class="pill-btn" data-scale="pentatonic">Minor Pentatonic</button>
+          <button type="button" class="pill-btn" data-scale="lydian">Lydian</button>
+          <button type="button" class="pill-btn" data-scale="dorian">Dorian</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label class="group-label" for="select-root">KEY</label>
+        <select id="select-root" class="key-select">
+          <option value="C">C</option>
+          <option value="D">D</option>
+          <option value="Eb">Eb</option>
+          <option value="F" selected>F</option>
+          <option value="G">G</option>
+          <option value="A">A</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="dock-row dock-bottom-row">
+      <div class="sliders-group">
+        <label class="slider-item">
+          <span>VOLUME</span>
+          <input type="range" id="slider-volume" min="0" max="1" step="0.01" value="0.72" />
+        </label>
+        <label class="slider-item">
+          <span>REVERB</span>
+          <input type="range" id="slider-reverb" min="0" max="1" step="0.01" value="0.65" />
+        </label>
+        <label class="slider-item">
+          <span>DRONE</span>
+          <input type="range" id="slider-drone" min="0" max="1" step="0.01" value="0.38" />
+        </label>
+        <label class="slider-item">
+          <span>SFERICS</span>
+          <input type="range" id="slider-sferics" min="0" max="1" step="0.01" value="0.25" />
+        </label>
+      </div>
+
+      <div class="globe-toggles" role="group" aria-label="Globe Display Toggles">
+        <button type="button" id="toggle-rotate" class="toggle-chip active">Auto-Rotate</button>
+        <button type="button" id="toggle-follow" class="toggle-chip">Follow</button>
+        <button type="button" id="toggle-arcs" class="toggle-chip active">Arcs</button>
+        <button type="button" id="toggle-sun" class="toggle-chip sun-chip" title="Real-time sun position, day/night terminator &amp; city lights">Sun</button>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
